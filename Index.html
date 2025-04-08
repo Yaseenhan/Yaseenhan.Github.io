@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Image Stories</title>
+    <style>
+        /* === CSS STYLES === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .story-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+        .story-slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .story-slide.active {
+            opacity: 1;
+        }
+        .story-slide img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .ad-slide {
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .ad-slide a {
+            color: blue;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-area {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            z-index: 10;
+        }
+        .nav-left {
+            left: 0;
+        }
+        .nav-right {
+            right: 0;
+        }
+        .progress-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 15;
+        }
+        .progress-bar {
+            height: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            flex: 1;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: white;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+    <div class="story-container">
+        <div class="progress-container" id="progressContainer"></div>
+        <!-- Slides will be added by JavaScript -->
+        <div class="nav-area nav-left" id="navLeft"></div>
+        <div class="nav-area nav-right" id="navRight"></div>
+    </div>
+
+    <script>
+        // === JAVASCRIPT ===
+        // ===== STEP 1: ADD YOUR IMAGES & ADS HERE =====
+        // Replace these with YOUR image URLs and ad links
+        const slides = [
+            { type: 'image', content: 'https://source.unsplash.com/random/800x1200?nature' }, // Image 1
+            { type: 'ad', content: 'https://example.com/ads' }, // Ad 1 (replace with your ad link)
+            { type: 'image', content: 'https://source.unsplash.com/random/800x1200?city' }, // Image 2
+            { type: 'ad', content: 'https://example.com/ads2' }, // Ad 2
+            // Add more images/ads as needed...
+        ];
+
+        // ===== STEP 2: CONFIGURATION =====
+        const config = {
+            autoAdvance: true,      // Auto-play stories?
+            autoAdvanceDelay: 5000,  // 5 seconds per slide
+            showProgressBar: true    // Show progress bar?
+        };
+
+        // ===== STEP 3: INITIALIZE THE STORY =====
+        let currentIndex = 0;
+        let autoAdvanceTimer;
+        let progressInterval;
+        const container = document.querySelector('.story-container');
+        const progressContainer = document.getElementById('progressContainer');
+
+        function initStory() {
+            // Create progress bars
+            if (config.showProgressBar) {
+                slides.forEach(() => {
+                    const progressBar = document.createElement('div');
+                    progressBar.className = 'progress-bar';
+                    progressBar.innerHTML = '<div class="progress-fill"></div>';
+                    progressContainer.appendChild(progressBar);
+                });
+            }
+
+            // Create slides
+            slides.forEach((slide, index) => {
+                const slideElement = document.createElement('div');
+                slideElement.className = 'story-slide';
+                if (slide.type === 'image') {
+                    slideElement.innerHTML = `<img src="${slide.content}" alt="Story image">`;
+                } else if (slide.type === 'ad') {
+                    slideElement.className += ' ad-slide';
+                    slideElement.innerHTML = `<a href="${slide.content}" target="_blank">Sponsored Ad</a>`;
+                }
+
+                if (index === 0) slideElement.classList.add('active');
+                container.insertBefore(slideElement, progressContainer.nextSibling);
+            });
+
+            // Start auto-advance if enabled
+            if (config.autoAdvance) {
+                startAutoAdvance();
+                startProgressBar();
+            }
+        }
+
+        // ===== NAVIGATION FUNCTIONS =====
+        function goToNext() {
+            if (currentIndex >= slides.length - 1) {
+                currentIndex = 0; // Loop to start
+            } else {
+                currentIndex++;
+            }
+            updateSlides();
+        }
+
+        function goToPrev() {
+            if (currentIndex <= 0) {
+                currentIndex = slides.length - 1; // Loop to end
+            } else {
+                currentIndex--;
+            }
+            updateSlides();
+        }
+
+        function updateSlides() {
+            const allSlides = document.querySelectorAll('.story-slide');
+            allSlides.forEach(slide => slide.classList.remove('active'));
+            allSlides[currentIndex].classList.add('active');
+
+            if (config.autoAdvance) {
+                clearTimeout(autoAdvanceTimer);
+                startAutoAdvance();
+                resetProgressBar();
+            }
+        }
+
+        // ===== AUTO-ADVANCE & PROGRESS BAR =====
+        function startAutoAdvance() {
+            autoAdvanceTimer = setTimeout(goToNext, config.autoAdvanceDelay);
+        }
+
+        function startProgressBar() {
+            clearInterval(progressInterval);
+            const currentProgress = document.querySelectorAll('.progress-fill')[currentIndex];
+            let width = 0;
+            progressInterval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(progressInterval);
+                } else {
+                    width += 1;
+                    currentProgress.style.width = width + '%';
+                }
+            }, config.autoAdvanceDelay / 100);
+        }
+
+        function resetProgressBar() {
+            document.querySelectorAll('.progress-fill').forEach(bar => {
+                bar.style.width = '0%';
+            });
+            startProgressBar();
+        }
+
+        // ===== TOUCH & CLICK EVENTS =====
+        document.getElementById('navLeft').addEventListener('click', goToPrev);
+        document.getElementById('navRight').addEventListener('click', goToNext);
+
+        // Touch swipe for mobile
+        let touchStartX = 0;
+        container.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+
+        container.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            if (touchStartX - touchEndX > 50) goToNext(); // Swipe left
+            else if (touchEndX - touchStartX > 50) goToPrev(); // Swipe right
+        });
+
+        // Keyboard arrows for desktop
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') goToPrev();
+            else if (e.key === 'ArrowRight') goToNext();
+        });
+
+        // ===== START THE STORY =====
+        initStory();
+    </script>
+</body>
+</html>
